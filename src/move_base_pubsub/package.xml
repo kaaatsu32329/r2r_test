@@ -1,0 +1,18 @@
+<!-- test_drive/src/move_base/package.xml -->
+<package format="3">
+    <name>move_base_pubsub</name>
+    <version>0.0.0</version>
+    <description>MoveBase publisher and subscriber by Rust</description>
+    <maintainer email="katsu1112uchi@gmail.com">Katsu Uchiyama</maintainer>
+    <license>None</license>
+
+    <depend>geometry_msgs</depend>
+    <depend>sensor_msgs</depend>
+
+    <test_depend>ament_lint_auto</test_depend>
+    <test_depend>ament_lint_common</test_depend>
+
+    <export>
+        <build_type>ament_cargo</build_type>
+    </export>
+</package>
