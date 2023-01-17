@@ -1,3 +1,4 @@
+use futures::{executor::LocalPool, future, task::LocalSpawnExt, StreamExt};
 use r2r::{
     geometry_msgs::{self, msg::Vector3},
     Context, Node, QosProfile,
@@ -8,7 +9,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut node = Node::create(ctx, "move_base", "")?;
 
     let publisher =
-        node.create_publisher::<geometry_msgs::msg::Twist>("cmd_vel", QosProfile::default())?;
+        node.create_publisher::<geometry_msgs::msg::Twist>("/cmd_vel", QosProfile::default())?;
+    let subscriber =
+        node.subscribe::<geometry_msgs::msg::Twist>("/cmd_vel", QosProfile::default())?;
+
+    let mut timer = node.create_wall_timer(std::time::Duration::from_millis(1000))?;
+
+    let mut pool = LocalPool::new();
+    let spawner = pool.spawner();
 
     let twist_msg = geometry_msgs::msg::Twist {
         linear: Vector3 {
@@ -23,7 +31,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     };
 
+    spawner.spawn_local(async move {
+        subscriber
+            .for_each(|msg| {
+                println!("[message]: {:?}", msg);
+                future::ready(())
+            })
+            .await
+    })?;
+
+    spawner.spawn_local(async move {
+        loop {
+            timer.tick().await.unwrap();
+            publisher.publish(&twist_msg).unwrap();
+        }
+    })?;
+
     loop {
-        publisher.publish(&twist_msg)?;
+        println!("Aaaaaaaaaaaah");
+        node.spin_once(std::time::Duration::from_millis(1000));
+        pool.run_until_stalled();
     }
 }
